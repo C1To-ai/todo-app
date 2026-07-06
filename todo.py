@@ -3,8 +3,8 @@
 命令行交互，数据保存到 JSON 文件。
 
 功能：
-  1. 添加待办事项
-  2. 列出所有待办
+  1. 添加待办事项（支持优先级：高/中/低）
+  2. 列出所有待办（按优先级排序）
   3. 标记为已完成
   4. 删除待办事项
 """
@@ -14,6 +14,9 @@ import os
 
 
 DATA_FILE = "todos.json"
+
+# 优先级排序权重
+PRIORITY_ORDER = {"高": 0, "中": 1, "低": 2}
 
 
 def load_todos():
@@ -35,31 +38,48 @@ def save_todos(todos):
 
 
 def add_todo(todos):
-    """添加新待办"""
+    """添加新待办（支持优先级）"""
     title = input("请输入待办事项内容：").strip()
     if not title:
         print("内容不能为空！")
         return
+
+    priority = input("请输入优先级 (高/中/低，默认中)：").strip() or "中"
+    if priority not in PRIORITY_ORDER:
+        print("无效优先级，使用默认：中")
+        priority = "中"
+
     todo = {
         "id": len(todos) + 1,
         "title": title,
+        "priority": priority,
         "done": False
     }
     todos.append(todo)
     save_todos(todos)
-    print(f"✅ 已添加：{title}")
+    print(f"✅ 已添加：[{priority}] {title}")
 
 
 def list_todos(todos):
-    """列出所有待办"""
+    """列出所有待办（按优先级排序）"""
     if not todos:
         print("📭 暂无待办事项")
         return
-    print(f"\n{'ID':<4} {'状态':<8} {'内容'}")
-    print("-" * 40)
-    for todo in todos:
+
+    # 按优先级排序（高→中→低），未完成排前面
+    sorted_todos = sorted(
+        todos,
+        key=lambda t: (t.get("done", False), PRIORITY_ORDER.get(t.get("priority", "中"), 1))
+    )
+
+    priority_icon = {"高": "🔴", "中": "🟡", "低": "🟢"}
+    print(f"\n{'ID':<4} {'优先级':<6} {'状态':<8} {'内容'}")
+    print("-" * 50)
+    for todo in sorted_todos:
+        pri = todo.get("priority", "中")
+        icon = priority_icon.get(pri, "🟡")
         status = "✅ 已完成" if todo["done"] else "⬜ 未完成"
-        print(f"{todo['id']:<4} {status:<8} {todo['title']}")
+        print(f"{todo['id']:<4} {icon:<6} {status:<8} {todo['title']}")
 
 
 def mark_done(todos):
@@ -103,8 +123,8 @@ def show_menu():
     print("\n" + "=" * 30)
     print("      待办事项管理器")
     print("=" * 30)
-    print("1. 添加待办")
-    print("2. 列出待办")
+    print("1. 添加待办（支持优先级）")
+    print("2. 列出待办（按优先级排序）")
     print("3. 标记完成")
     print("4. 删除待办")
     print("5. 退出")
